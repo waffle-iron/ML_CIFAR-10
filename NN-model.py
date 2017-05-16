@@ -1,5 +1,6 @@
 import tensorflow as tf
 from input_data import *
+import pickle
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -16,27 +17,29 @@ PRINT_STEP_SIZE = 10
 class Batch:
     def __init__(self, config):
         self.config = config
-        data = self.load_data()
-        self.batch = self.load_batch(data)
+        self.batch={}
+        self.load_batch()
         self.batch_index = 0
         pass
 
-    def load_data(self, config=None):
-        if config is None:
-            dir_list = self.config["dir_list"]
-        else:
-            dir_list = config["dir_list"]
+    def unpickle(self, file):
+        import pickle
+        with open(file, 'rb') as fo:
+            dict = pickle.load(fo, encoding='bytes')
+        return dict
 
-        data = []
-        for dir_ in dir_list:
-            data += [unpickle(dir_)]
+    def load_data(self):
+
+        for dir_ in self.config["dir_list"]:
+
         return data
 
+    def __merg
     # TODO
     def load_batch(self, data):
         batch = {}
         for data_name in self.config["data_name_list"]:
-
+            pass
         return batch
 
     # TODO
