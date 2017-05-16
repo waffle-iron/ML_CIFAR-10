@@ -9,42 +9,54 @@ BATCH_SIZE = 100
 PRINT_STEP_SIZE = 10
 
 # TODO
+
+# config = {"dir_list": [], "data_name_list": []}
+
+
 class Batch:
-    def __init__(self, data=None):
-        self.X = []
-        self.Y_index = []
-        self.Y_list = []
-        self.iter_index = 0
-
-        if data != None:
-            generate_train_batch_data()
-            pass
-
+    def __init__(self, config):
+        self.config = config
+        data = self.load_data()
+        self.batch = self.load_batch(data)
+        self.batch_index = 0
         pass
 
-    def Y_index_To_Y_list(self, Y_index, Y_max):
-        Y_list = []
-        for index in range(len(Y_index)):
-            l = [0 for _ in range(Y_max + 1)]
-            l[index] = 1
-            Y_list += [l]
+    def load_data(self, config=None):
+        if config is None:
+            dir_list = self.config["dir_list"]
+        else:
+            dir_list = config["dir_list"]
 
-        return Y_list
-
-    def nextBatch(size):
-        data = {}
-
+        data = []
+        for dir_ in dir_list:
+            data += [unpickle(dir_)]
         return data
 
+    # TODO
+    def load_batch(self, data):
+        batch = {}
+        for data_name in self.config["data_name_list"]:
+
+        return batch
+
+    # TODO
+    def next_batch(self, size, symbolList=None):
+        if symbolList is None:
+            elementList = self.config["elementList"]
+        else:
+            elementList = symbolList
+
+        batch = {}
+        for el in elementList:
+            batch[el] = self.get_element(el, size)
+        return batch
+
+    # TODO
+    def get_element(self, name, size):
+        elements = []
+        return elements
+
     pass
-
-
-def nextBatch(size, ):
-    return
-
-
-def testBatch():
-    return
 
 
 # TODO need test

@@ -95,57 +95,8 @@ def open_image_batch():
     return test_data
 
 
-# config = {"dir_list": [], "data_name_list": []}
-
-
-class Batch:
-    def __init__(self, config):
-        self.config = config
-        data = self.load_data()
-        self.batch = self.load_batch(data)
-        self.batch_index = 0
-        pass
-
-    def load_data(self, config=None):
-        if config is None:
-            dir_list = self.config["dir_list"]
-        else:
-            dir_list = config["dir_list"]
-
-        data = []
-        for dir_ in dir_list:
-            data += [unpickle(dir_)]
-        return data
-
-    # TODO
-    def load_batch(self, data):
-        batch = {}
-        for data_name in self.config["data_name_list"]:
-
-        return batch
-
-    # TODO
-    def next_batch(self, size, symbolList=None):
-        if symbolList is None:
-            elementList = self.config["elementList"]
-        else:
-            elementList = symbolList
-
-        batch = {}
-        for el in elementList:
-            batch[el] = self.get_element(el, size)
-        return batch
-
-    # TODO
-    def get_element(self, name, size):
-        elements = []
-        return elements
-
-    pass
-
 
 if __name__ == '__main__':
     # open_meta_file()
     # open_train_batch_files()
     # open_image_batch()
-    generate_train_batch_data()
