@@ -16,8 +16,8 @@ widgets = ['Running: ', Percentage(), ' ',
 def unpickle(file):
     import pickle
     with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding='bytes')
-    return dict
+        unpickled = pickle.load(fo, encoding='bytes')
+    return unpickled
 
 
 def show_image(raw_data, img):
@@ -46,7 +46,8 @@ def open_train_batch_files():
 
     data_file = []
     for batch_number in range(1, 6):
-        # print("\nbatch:", batch_number)
+        # print()
+        # print("batch:", batch_number)
         batch = unpickle(os.path.join(FOLDER_NAME, BATCH_FILE_NAME_FORMAT % batch_number))
 
         # batch data inputs
@@ -100,3 +101,4 @@ if __name__ == '__main__':
     # open_meta_file()
     # open_train_batch_files()
     # open_image_batch()
+    pass

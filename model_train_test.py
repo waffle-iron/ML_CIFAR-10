@@ -15,29 +15,28 @@ flags.DEFINE_integer("max_train_step", 1000, "default max train step")
 # TODO refactoring constant
 IMAGE_SIZE = 32 * 32 * 3
 LABEL_NUMBER = 10
-
 MAX_TRAIN_STEP = 100000
 BATCH_SIZE = 1000
 PRINT_STEP_SIZE = 100
 
 
-# TODO add argv for modeling funtion ex) layer width, layer number
-def NN_model():
+# TODO add argv for modeling function ex) layer width, layer number
+def model_NN():
     # placeHolder
     X = tf.placeholder(tf.float32, [None, IMAGE_SIZE], name="X")
     Y = tf.placeholder(tf.float32, [None, LABEL_NUMBER], name="Y")
     Y_label = tf.placeholder(tf.float32, [None], name="Y_label")
 
     # perceptron_layer
-    def Perceptron_layer(X, input_shape, layer_width):
+    def perceptron_layer(X, input_shape, layer_width):
         W = tf.Variable(tf.random_normal(input_shape + layer_width))
         bias = tf.Variable(tf.random_normal(layer_width))
         return tf.sigmoid(tf.matmul(X, W) + bias)
 
     # NN layer
-    layer1 = Perceptron_layer(X, [IMAGE_SIZE], [1000])
-    layer2 = Perceptron_layer(layer1, [1000], [1000])
-    h = Perceptron_layer(layer2, [1000], [LABEL_NUMBER])
+    layer1 = perceptron_layer(X, [IMAGE_SIZE], [1000])
+    layer2 = perceptron_layer(layer1, [1000], [1000])
+    h = perceptron_layer(layer2, [1000], [LABEL_NUMBER])
 
     # cost function square error method
     # cost = tf.reduce_mean((h - Y) ** 2, name="cost")
@@ -75,8 +74,8 @@ def NN_model():
     return tensor_set
 
 
-# TODO add argv for modeling funtion ex) layer width, layer number
-def NN_softmax_model():
+# TODO add argv for modeling function ex) layer width, layer number
+def model_NN_softmax():
     # placeHolder
     X = tf.placeholder(tf.float32, [None, IMAGE_SIZE], name="X")
     Y = tf.placeholder(tf.float32, [None, LABEL_NUMBER], name="Y")
@@ -133,6 +132,7 @@ def NN_softmax_model():
 
 
 # TODO add check point function
+# TODO add tensorboard
 # TODO split function train_model and test_model
 def train_and_test_model(model):
     with tf.Session() as sess, tf.device("/GPU:0"):
@@ -142,19 +142,18 @@ def train_and_test_model(model):
 
         # train step
         for step in range(MAX_TRAIN_STEP):
-            key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_LIST]
+            key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
             data = train_batch.next_batch(BATCH_SIZE, key_list)
 
             feed_dict = {model["X"]: data[Batch.INPUT_DATA],
-                         model["Y"]: data[Batch.OUTPUT_LIST],
+                         model["Y"]: data[Batch.OUTPUT_DATA],
                          model["Y_label"]: data[Batch.OUTPUT_LABEL]}
             sess.run(model["train_op"], feed_dict)
 
-            i = 0
             if step % PRINT_STEP_SIZE == 0:
                 _acc, _cost = sess.run([model["batch_acc"], model["cost"]], feed_dict=feed_dict)
-                print(datetime.datetime.utcnow(), "train step :%d, batch :%d" % (step, i)
+                print(datetime.datetime.utcnow(), "train step :%d" % step
                       , "batch_acc :", _acc, "cost :", _cost)
 
 
@@ -184,7 +183,6 @@ def train_and_test_model(model):
 
 
 if __name__ == '__main__':
-    print(datetime.datetime.utcnow())
-    # NN_model()
-    train_model(NN_softmax_model())
+    train_and_test_model(model_NN())
+    train_and_test_model(model_NN_softmax())
     pass
