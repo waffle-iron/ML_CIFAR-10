@@ -2,28 +2,41 @@ import pickle
 import numpy as np
 import os
 
+DEFAULT_DIR_LIST = "dir_list"
+DEFAULT_NAME_KEY_LIST = "key_list"
+DEFAULT_BATCH_FILE_NUMBER = 5
+DEFAULT_BATCH_FILE_FORMAT = "data_batch_%d"
+DEFAULT_BATCH_FOLDER = ".\\cifar-10-batches-py"
 
-# TODO
+BATCH_FILE_LABEL = b'batch_label'
+INPUT_DATA = b'data'
+INPUT_FILE_NAME = b'filenames'
+OUTPUT_LABEL = b'labels'
+OUTPUT_LIST = "output_list"
 
-# config = {"dir_list": [], "data_name_list": []}
-# batch_label = batch[b'batch_label']
-# data = batch[b'data']
-# file_names = batch[b'filenames']
-# labels = batch[b'labels']
-
-
+# TODO need repectoring
 class Config:
-    def __init__(self):
-        self.config = dict()
-        self.FOLDER_NAME = ".\\cifar-10-batches-py"
-        self.BATCH_FILE_NAME_FORMAT = "data_batch_%d"
+    KEY_LIST = DEFAULT_NAME_KEY_LIST
+    DIR_LIST = DEFAULT_DIR_LIST
+    FOLDER_NAME = DEFAULT_BATCH_FOLDER
+    BATCH_FILE_NAME_FORMAT = DEFAULT_BATCH_FILE_FORMAT
 
-        self.config["dir_list"] = []
-        for i in range(1, 5 + 1):
-            self.config["dir_list"] \
+    def __init__(self):
+        # init config
+        self.config = dict()
+
+        self.config[DEFAULT_DIR_LIST] = []
+        for i in range(1, DEFAULT_BATCH_FILE_NUMBER + 1):
+            self.config[DEFAULT_DIR_LIST] \
                 += [os.path.join(self.FOLDER_NAME, self.BATCH_FILE_NAME_FORMAT % i)]
 
-        pass
+        self.config[self.KEY_LIST] = [
+            BATCH_FILE_LABEL,
+            INPUT_DATA,
+            INPUT_FILE_NAME,
+            OUTPUT_LABEL,
+            OUTPUT_LIST,
+        ]
 
 
 class Batch:
@@ -32,8 +45,8 @@ class Batch:
         self.batch = {}
         self.load_batch()
         self.batch_index = 0
-        self.batch_size = len(self.batch[b'data'])
-
+        self.batch_size = len(self.batch[INPUT_DATA])
+        self.convert_label_data()
         pass
 
     @staticmethod
@@ -43,19 +56,18 @@ class Batch:
             dict = pickle.load(fo, encoding='bytes')
         return dict
 
+    # TODO need repectoring
     def __append(self, a, b, key):
-        if key == b'batch_label':
+        if key == BATCH_FILE_LABEL:
             return a + b
-        elif key == b'data':
+        elif key == INPUT_DATA:
             return np.concatenate((a, b))
-        elif key == b'filenames':
+        elif key == INPUT_FILE_NAME:
             return a + b
-        elif key == b'labels':
+        elif key == OUTPUT_LABEL:
             return a + b
 
-    # TODO
     def load_batch(self):
-        print(self.config["dir_list"])
         for dir_ in self.config["dir_list"]:
             data = self.unpickle(dir_)
             for key in data:
@@ -65,41 +77,44 @@ class Batch:
                     self.batch[key] = data[key]
         pass
 
-    # TODO
     def next_batch(self, size, key_list=None):
         if key_list is None:
-            key_list = self.config.default_key_list
+            key_list = self.config[Config.KEY_LIST]
 
         batch = {}
         for key in key_list:
-            batch[key] = self.__next_batch(key, size)
+            part = self.batch[key][self.batch_index:self.batch_index + size]
+            while len(part) < size:
+                part += self.batch[key]
+            batch[key] = part[:size]
 
         self.batch_index = (self.batch_index + size) % self.batch_size
         return batch
 
-    def __next_batch(self, key, size):
-        print(key)
-        print(self.batch[key])
+    def convert_label_data(self):
+        self.batch[OUTPUT_LIST] = []
+        for idx in self.batch[OUTPUT_LABEL]:
+            temp = [0 for _ in range(10)]
+            temp[idx] = 1
+            self.batch[OUTPUT_LIST] += [temp]
+        pass
 
-        ret = self.batch[key][self.batch_index:self.batch_index + size]
-        while len(ret) < size:
-            ret += self.batch[key]
-        return ret[:size]
+    def reset_batch_index(self):
+        self.batch_index = 0
 
-
-pass
 
 if __name__ == '__main__':
     batch_config = Config()
-    print(batch_config.config["dir_list"])
+    # print(batch_config.config["dir_list"])
 
     b = Batch(batch_config)
 
     size = 3
-    for _ in range(10):
-        key_list = [b'data', b'labels']
+    for _ in range(1):
+        key_list = [b'data', b'labels',"output_list" ]
         batch = b.next_batch(size, key_list)
         for key in batch:
             print(key)
             for i in batch[key]:
                 print(i)
+                print()
