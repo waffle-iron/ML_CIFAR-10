@@ -15,9 +15,23 @@ flags.DEFINE_integer("max_train_step", 1000, "default max train step")
 # TODO refactoring constant
 IMAGE_SIZE = 32 * 32 * 3
 LABEL_NUMBER = 10
-MAX_TRAIN_STEP = 100000
+MAX_TRAIN_STEP = 2000
+MAX_TEST_STEP = 500
 BATCH_SIZE = 1000
 PRINT_STEP_SIZE = 100
+
+
+def variable_summaries(var):
+  """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+  with tf.name_scope('summaries'):
+    mean = tf.reduce_mean(var)
+    tf.summary.scalar('mean', mean)
+    with tf.name_scope('stddev'):
+      stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+    tf.summary.scalar('stddev', stddev)
+    tf.summary.scalar('max', tf.reduce_max(var))
+    tf.summary.scalar('min', tf.reduce_min(var))
+    tf.summary.histogram('histogram', var)
 
 
 # TODO add argv for modeling function ex) layer width, layer number
@@ -28,33 +42,54 @@ def model_NN():
     Y_label = tf.placeholder(tf.float32, [None], name="Y_label")
 
     # perceptron_layer
-    def perceptron_layer(X, input_shape, layer_width):
-        W = tf.Variable(tf.random_normal(input_shape + layer_width))
-        bias = tf.Variable(tf.random_normal(layer_width))
-        return tf.sigmoid(tf.matmul(X, W) + bias)
+    def perceptron_layer(X, input_shape, layer_width, layer_name=None):
+        with tf.name_scope(layer_name):
+            with tf.name_scope("weights"):
+                W = tf.Variable(tf.random_normal(input_shape + layer_width))
+                variable_summaries(W)
+            with tf.name_scope("bias"):
+                bias = tf.Variable(tf.random_normal(layer_width))
+                variable_summaries(bias)
+            with tf.name_scope("sigmoid_w_mul_x_plus_b"):
+                preactivate = tf.sigmoid(tf.matmul(X, W) + bias)
+                tf.summary.histogram(preactivate)
+            return preactivate
 
     # NN layer
-    layer1 = perceptron_layer(X, [IMAGE_SIZE], [1000])
-    layer2 = perceptron_layer(layer1, [1000], [1000])
-    h = perceptron_layer(layer2, [1000], [LABEL_NUMBER])
+    layer1 = perceptron_layer(X, [IMAGE_SIZE], [1000], "layer_1")
+    layer2 = perceptron_layer(layer1, [1000], [1000], "layer_2")
+    h = perceptron_layer(layer2, [1000], [LABEL_NUMBER], "layer_3")
 
     # cost function square error method
     # cost = tf.reduce_mean((h - Y) ** 2, name="cost")
 
     # logistic regression
-    cost = -tf.reduce_mean(Y * tf.log(h) + (1 - Y) * tf.log(1 - h), name="cost")
+    with tf.name_scope("cost_function"):
+        cost = -tf.reduce_mean(Y * tf.log(h) + (1 - Y) * tf.log(1 - h), name="cost")
+        variable_summaries(cost)
 
     # train op
-    train_op = tf.train.GradientDescentOptimizer(0.1).minimize(cost)
+    with tf.name_scope("train_op"):
+        train_op = tf.train.GradientDescentOptimizer(0.1).minimize(cost)
+        if train_op is None:
+            pass
+        tf.summary.histogram(train_op)
 
     # predicted label and batch batch_acc
     predicted_label = tf.cast(tf.arg_max(h, 1, name="predicted_label"), tf.float32)
-    batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
-                               name="batch_acc")
-    batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
+    with tf.name_scope("NN_batch_acc"):
+        batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
+                                   name="batch_acc")
+        tf.summary.scalar("accuracy", batch_acc)
+        batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
                                     name="batch_hit_count")
+        tf.summary.scalar("hit_count", batch_hit_count)
 
-    init_op = tf.initialize_all_variables()
+    # merge summary
+    summary = tf.summary.merge_all()
+
+    # init op
+    init_op = tf.global_variables_initializer()
 
     # save tensor
     tensor_set = {"X": X,
@@ -69,6 +104,7 @@ def model_NN():
                   "batch_acc": batch_acc,
                   "batch_hit_count ": batch_hit_count,
                   "init_op": init_op,
+                  "summary": summary,
                   }
 
     return tensor_set
@@ -82,22 +118,30 @@ def model_NN_softmax():
     Y_label = tf.placeholder(tf.float32, [None], name="Y_label")
 
     # perceptron_layer
-    def perceptron_layer(X, input_shape, layer_width):
-        W = tf.Variable(tf.random_normal(input_shape + layer_width))
-        bias = tf.Variable(tf.random_normal(layer_width))
+    def perceptron_layer(X, input_shape, layer_width, layer_name=None):
+        with tf.name_scope("weights"):
+            W = tf.Variable(tf.random_normal(input_shape + layer_width))
+            variable_summaries(W)
+        with tf.name_scope("bias"):
+            bias = tf.Variable(tf.random_normal(layer_width))
+            variable_summaries(bias)
         return tf.sigmoid(tf.matmul(X, W) + bias)
 
     # NN layer
-    layer1 = perceptron_layer(X, [IMAGE_SIZE], [1000])
-    layer2 = perceptron_layer(layer1, [1000], [1000])
-    layer3 = perceptron_layer(layer2, [1000], [LABEL_NUMBER])
+    layer1 = perceptron_layer(X, [IMAGE_SIZE], [1000], "softmax_L1")
+    layer2 = perceptron_layer(layer1, [1000], [1000], "softmax_L2")
+    layer3 = perceptron_layer(layer2, [1000], [LABEL_NUMBER], "softmax_L3")
 
     # softmax layer
-    W_softmax = tf.Variable(tf.zeros([10, 10]), name="W_softmax")
-    h = tf.nn.softmax(tf.matmul(layer3, W_softmax), name="h")
+    with tf.name_scope("softmax_func"):
+        W_softmax = tf.Variable(tf.zeros([10, 10]), name="W_softmax")
+        h = tf.nn.softmax(tf.matmul(layer3, W_softmax), name="h")
+        variable_summaries(h)
 
     # cross entropy function
-    cost = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(h), reduction_indices=1))
+    with tf.name_scope("cross_entropy"):
+        cost = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(h), reduction_indices=1))
+        variable_summaries(cost)
 
     # train op
     learning_rate = 0.01
@@ -105,12 +149,21 @@ def model_NN_softmax():
 
     # predicted label and batch batch_acc
     predicted_label = tf.cast(tf.arg_max(h, 1, name="predicted_label"), tf.float32)
-    batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
-                               name="batch_acc")
-    batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
-                                    name="batch_hit_count")
+    with tf.name_scope("softmax_batch_acc"):
+        with tf.name_scope("accuracy"):
+            batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
+                                       name="batch_acc")
+            tf.summary.scalar("accuracy", batch_acc)
+        with tf.name_scope("batch_hit_count"):
+            batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
+                                            name="batch_hit_count")
+            tf.summary.scalar("hit_count", batch_hit_count)
 
-    init_op = tf.initialize_all_variables()
+    # merge summary
+    summary = tf.summary.merge_all()
+
+    # init op
+    init_op = tf.global_variables_initializer()
 
     # save tensor
     tensor_set = {"X": X,
@@ -126,7 +179,8 @@ def model_NN_softmax():
                   "predicted_label": predicted_label,
                   "batch_acc": batch_acc,
                   "batch_hit_count ": batch_hit_count,
-                  "init_op": init_op
+                  "init_op": init_op,
+                  "summary": summary,
                   }
     return tensor_set
 
@@ -134,8 +188,18 @@ def model_NN_softmax():
 # TODO add check point function
 # TODO add tensorboard
 # TODO split function train_model and test_model
-def train_and_test_model(model):
-    with tf.Session() as sess, tf.device("/GPU:0"):
+def train_and_model(model):
+
+    with tf.Session() as sess, tf.device("/CPU:0"):
+
+        # checkpoint val
+        saver = tf.train.Saver()
+
+        # tensorboard
+        train_writer = tf.summary.FileWriter("./train_log", sess.graph)
+        test_writer = tf.summary.FileWriter("./test_log")
+
+        print("Train Start...")
         train_batch_config = Batch.Config()
         train_batch = Batch.Batch(train_batch_config)
         sess.run(model["init_op"])
@@ -152,37 +216,50 @@ def train_and_test_model(model):
             sess.run(model["train_op"], feed_dict)
 
             if step % PRINT_STEP_SIZE == 0:
-                _acc, _cost = sess.run([model["batch_acc"], model["cost"]], feed_dict=feed_dict)
-                print(datetime.datetime.utcnow(), "train step :%d" % step
-                      , "batch_acc :", _acc, "cost :", _cost)
+                summary_train, _acc, _cost = sess.run([model["summary"], model["batch_acc"], model["cost"]], feed_dict=feed_dict)
+                print(datetime.datetime.utcnow(), "train step: %d" % step
+                      , "batch_acc:", _acc, "cost:", _cost)
+                # checkpoint
+                saver.save(sess, './checkpoint/train/save', global_step=step)
+                # summary tensorboard
+                train_writer.add_summary(summary=summary_train, global_step=step)
 
+        saver.save(sess, './checkpoint/train/save', global_step=step)
+        train_writer.add_summary(summary=summary_train, global_step=step)
 
-                # label = sess.run(predicted_label, feed_dict=feed_dict)
-                # print("predict :", _out)
-                # print("Y_data :", data[b'labels'])
-                # print()
+        # test step
+        print("Test Start...")
+        test_batch_config = Batch.Config()
+        test_batch = Batch.Batch(test_batch_config)
 
-                # # test step
-                # # for now use train data
-                # train_batch.reset_batch_index()
-                #
-                # total_acc = 0
-                # count = 0
-                # for step in range(int(test_size / BATCH_SIZE)):
-                #     data = train_batch.next_batch(BATCH_SIZE)
-                #
-                #     feed_dict = {X: data[b'data'], Y: Y_data}
-                #
-                #     _acc, _cost = sess.run([batch_acc, cost], feed_dict=feed_dict)
-                #     print("test batch_acc :", _acc, "cost :", _cost)
-                #     total_acc += _acc
-                #     count += 1
-                # print(total_acc, count)
-                # print("total batch_acc :", total_acc / count)
+        for step in range(MAX_TEST_STEP):
+            key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
+
+            data = test_batch.next_batch(BATCH_SIZE, key_list)
+
+            feed_dict = {model["X"]: data[Batch.INPUT_DATA],
+                         model["Y"]: data[Batch.OUTPUT_DATA],
+                         model["Y_label"]: data[Batch.OUTPUT_LABEL]}
+            # print("input:", data[Batch.INPUT_DATA])
+            # print("output:", data[Batch.OUTPUT_DATA])
+            # print("label:", data[Batch.OUTPUT_LABEL])
+
+            if step % PRINT_STEP_SIZE == 0:
+                summary_test, _acc = sess.run([model["summary"], model["batch_acc"]], feed_dict=feed_dict)
+                print(datetime.datetime.utcnow(), "test step: %d" % step
+                      , "batch_acc: ", _acc)
+                test_writer.add_summary(summary=summary_test, global_step=step)
+                saver.save(sess, './checkpoint/test/save', global_step=step)
+
+        test_writer.add_summary(summary=summary_test, global_step=step)
+        saver.save(sess, './checkpoint/test/save', global_step=step)
+
     return
 
 
 if __name__ == '__main__':
-    train_and_test_model(model_NN())
-    train_and_test_model(model_NN_softmax())
+    # print("Neural Networks")
+    # train_and_model(model_NN())
+    print("NN softmax")
+    train_and_model(model_NN_softmax())
     pass
