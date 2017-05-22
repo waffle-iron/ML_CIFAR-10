@@ -6,7 +6,11 @@ DEFAULT_DIR_LIST = "dir_list"
 DEFAULT_NAME_KEY_LIST = "key_list"
 DEFAULT_BATCH_FILE_NUMBER = 5
 DEFAULT_DATA_BATCH_FILE_FORMAT = "data_batch_%d"
-DEFAULT_BATCH_FOLDER = ".\\cifar-10-batches-py"
+# DEFAULT_BATCH_FOLDER = ".\\cifar-10-batches-py" # windows
+# DEFAULT_BATCH_FOLDER = "./cifar-10-batches-py" # ubuntu
+
+# TODO LOOK at me this way is better
+DEFAULT_BATCH_FOLDER = os.path.join(".", "cifar-10-batches-py")
 
 BATCH_FILE_LABEL = b'batch_label'
 INPUT_DATA = b'data'
@@ -62,7 +66,7 @@ class Batch:
     # TODO need refactoring
     def __append(self, a, b, key):
         if key == BATCH_FILE_LABEL:
-            return a + b
+            return a + [b]
         elif key == INPUT_DATA:
             return np.concatenate((a, b))
         elif key == INPUT_FILE_NAME:
@@ -133,10 +137,12 @@ def test_train_Batch():
                 print()
     return
 
+
 # TODO implement test_batch
 # TODO test test_batch
 def test_test_Batch():
     return
+
 
 if __name__ == '__main__':
     test_train_Batch()
