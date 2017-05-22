@@ -9,20 +9,18 @@ import neural_networks as nn
 # TODO file must split
 # TODO write more comment please
 
-# TODO this code does not work need fix
+mf = MlFlags()
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float("learning_rage", 0.01, "default learning rate")
-flags.DEFINE_integer("max_train_step", 1000, "default max train step")
-
 
 # TODO add argv for modeling function ex) layer width, layer number
 def model_NN():
 
+    # placeholder x, y, y_label
     ph_set = nn.placeholders_init(mf)
 
     # NN layer
-    layer1 = nn.layer_perceptron(ph_set["x"], [mf.IMAGE_SIZE], [mf.PERCEPTRON_INPUT_SHAPE_SIZE], "layer_1")
+    layer1 = nn.layer_perceptron(ph_set["X"], [mf.IMAGE_SIZE], [mf.PERCEPTRON_INPUT_SHAPE_SIZE], "layer_1")
     layer2 = nn.layer_perceptron(layer1, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "layer_2")
     h = nn.layer_perceptron(layer2, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.LABEL_NUMBER], "layer_3")
 
@@ -30,15 +28,14 @@ def model_NN():
     with tf.name_scope("cost_function"):
         # TODO LOOK ME logistic regression does not work, for now use square error method
         # cost function square error method
-        cost = tf.reduce_mean((h - ph_set["y"]) ** 2, name="cost")
+        cost = tf.reduce_mean((h - ph_set["Y"]) ** 2, name="cost")
         # logistic regression
         # cost = -tf.reduce_mean(Y * tf.log(h) + (1 - Y) * tf.log(1 - h), name="cost")
         ts.variable_summaries(cost)
 
     # train op
-    learning_rate = 0.01
     with tf.name_scope("train_op"):
-        train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
+        train_op = tf.train.GradientDescentOptimizer(FLAGS.learning_rate).minimize(cost)
         # if train_op is None:
         #     pass
         # tf.summary.histogram(train_op)
@@ -46,10 +43,10 @@ def model_NN():
     # predicted label and batch batch_acc
     predicted_label = tf.cast(tf.arg_max(h, 1, name="predicted_label"), tf.float32)
     with tf.name_scope("NN_batch_acc"):
-        batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, ph_set["y_label"]), tf.float32),
+        batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, ph_set["Y_label"]), tf.float32),
                                    name="batch_acc")
         tf.summary.scalar("accuracy", batch_acc)
-        batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, ph_set["y_label"]), tf.float32),
+        batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, ph_set["Y_label"]), tf.float32),
                                         name="batch_hit_count")
         tf.summary.scalar("hit_count", batch_hit_count)
 
@@ -60,9 +57,9 @@ def model_NN():
     init_op = tf.global_variables_initializer()
 
     # save tensor
-    tensor_set = {"X": ph_set["x"],
-                  "Y": ph_set["y"],
-                  "Y_label": ph_set["y_label"],
+    tensor_set = {"X": ph_set["X"],
+                  "Y": ph_set["Y"],
+                  "Y_label": ph_set["Y_label"],
                   "layer1": layer1,
                   "layer2": layer2,
                   "h": h,
@@ -80,13 +77,12 @@ def model_NN():
 
 # TODO add argv for modeling function ex) layer width, layer number
 def model_NN_softmax():
+
     # placeHolder
-    X = tf.placeholder(tf.float32, [None, mf.IMAGE_SIZE], name="X")
-    Y = tf.placeholder(tf.float32, [None, mf.LABEL_NUMBER], name="Y")
-    Y_label = tf.placeholder(tf.float32, [None], name="Y_label")
+    ph_set = nn.placeholders_init(mf)
 
     # NN layer
-    layer1 = nn.layer_perceptron(X, [mf.IMAGE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "softmax_L1")
+    layer1 = nn.layer_perceptron(ph_set["x"], [mf.IMAGE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "softmax_L1")
     layer2 = nn.layer_perceptron(layer1, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "softmax_L2")
     layer3 = nn.layer_perceptron(layer2, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.LABEL_NUMBER], "softmax_L3")
 
@@ -98,22 +94,21 @@ def model_NN_softmax():
 
     # cross entropy function
     with tf.name_scope("cross_entropy"):
-        cost = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(h), reduction_indices=1))
+        cost = tf.reduce_mean(-tf.reduce_sum(ph_set["Y"] * tf.log(h), reduction_indices=1))
         ts.variable_summaries(cost)
 
     # train op
-    learning_rate = 0.01
-    train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
+    train_op = tf.train.GradientDescentOptimizer(FLAGS.learning_rate).minimize(cost)
 
     # predicted label and batch batch_acc
     predicted_label = tf.cast(tf.arg_max(h, 1, name="predicted_label"), tf.float32)
     with tf.name_scope("softmax_batch_acc"):
         with tf.name_scope("accuracy"):
-            batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
+            batch_acc = tf.reduce_mean(tf.cast(tf.equal(predicted_label, ph_set["Y_label"]), tf.float32),
                                        name="batch_acc")
             tf.summary.scalar("accuracy", batch_acc)
         with tf.name_scope("batch_hit_count"):
-            batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, Y_label), tf.float32),
+            batch_hit_count = tf.reduce_sum(tf.cast(tf.equal(predicted_label, ph_set["Y_label"]), tf.float32),
                                             name="batch_hit_count")
             tf.summary.scalar("hit_count", batch_hit_count)
 
@@ -124,9 +119,9 @@ def model_NN_softmax():
     init_op = tf.global_variables_initializer()
 
     # save tensor
-    tensor_set = {"X": X,
-                  "Y": Y,
-                  "Y_label": Y_label,
+    tensor_set = {"X": ph_set["X"],
+                  "Y": ph_set["Y"],
+                  "Y_label": ph_set["Y_label"],
                   "layer1": layer1,
                   "layer2": layer2,
                   "layer3": layer3,
@@ -162,7 +157,7 @@ def train_and_model(model):
         train_batch = Batch.Batch(train_batch_config)
         sess.run(model["init_op"])
 
-        for step in range(mf.MAX_TRAIN_STEP + 1):
+        for step in range(FLAGS.max_train_step + 1):
             key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
             data = train_batch.next_batch(mf.BATCH_SIZE, key_list)
@@ -193,7 +188,7 @@ def train_and_model(model):
         test_batch = Batch.Batch(test_batch_config)
 
         total_acc = 0.
-        for step in range(mf.MAX_TEST_STEP + 1):
+        for step in range(FLAGS.max_test_step + 1):
             key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
             data = test_batch.next_batch(mf.BATCH_SIZE, key_list)
@@ -222,8 +217,6 @@ def train_and_model(model):
 
 
 if __name__ == '__main__':
-    mf = MlFlags()
-
     print("Neural Networks")
     train_and_model(model_NN())
     # print("NN softmax")

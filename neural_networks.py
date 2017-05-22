@@ -16,10 +16,10 @@ def layer_perceptron(X, input_shape, layer_width, layer_name=None):
 def placeholders_init(mf):
 
     # placeHolder
-    x = tf.placeholder(tf.float32, [None, mf.IMAGE_SIZE], name="x")
-    y = tf.placeholder(tf.float32, [None, mf.LABEL_NUMBER], name="y")
-    y_label = tf.placeholder(tf.float32, [None], name="y_label")
+    x = tf.placeholder(tf.float32, [None, mf.IMAGE_SIZE], name="X")
+    y = tf.placeholder(tf.float32, [None, mf.LABEL_NUMBER], name="Y")
+    y_label = tf.placeholder(tf.float32, [None], name="Y_label")
 
-    ph_set = {"x": x, "y": y, "y_label": y_label}
+    ph_set = {"X": x, "Y": y, "Y_label": y_label}
 
     return ph_set
