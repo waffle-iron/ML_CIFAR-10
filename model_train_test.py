@@ -1,15 +1,14 @@
 import tensorflow as tf
 import datetime
+import os
 
 import Batch
-from ML_Flags import MlFlags
 import tensor_summary as ts
 import neural_networks as nn
 
 # TODO file must split
 # TODO write more comment please
 
-mf = MlFlags()
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -17,12 +16,15 @@ FLAGS = flags.FLAGS
 def model_NN():
 
     # placeholder x, y, y_label
-    ph_set = nn.placeholders_init(mf)
+    ph_set = nn.placeholders_init()
 
     # NN layer
-    layer1 = nn.layer_perceptron(ph_set["X"], [mf.IMAGE_SIZE], [mf.PERCEPTRON_INPUT_SHAPE_SIZE], "layer_1")
-    layer2 = nn.layer_perceptron(layer1, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "layer_2")
-    h = nn.layer_perceptron(layer2, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.LABEL_NUMBER], "layer_3")
+    layer1 = nn.layer_perceptron(ph_set["X"], [FLAGS.image_size],
+                                 [FLAGS.perceptron_input_shape_size], "layer_1")
+    layer2 = nn.layer_perceptron(layer1, [FLAGS.perceptron_input_shape_size],
+                                 [FLAGS.perceptron_output_shape_size], "layer_2")
+    h = nn.layer_perceptron(layer2, [FLAGS.perceptron_input_shape_size],
+                            [FLAGS.label_number], "layer_3")
 
     # cost function
     with tf.name_scope("cost_function"):
@@ -79,12 +81,15 @@ def model_NN():
 def model_NN_softmax():
 
     # placeHolder
-    ph_set = nn.placeholders_init(mf)
+    ph_set = nn.placeholders_init()
 
     # NN layer
-    layer1 = nn.layer_perceptron(ph_set["x"], [mf.IMAGE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "softmax_L1")
-    layer2 = nn.layer_perceptron(layer1, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.PERCEPTRON_OUTPUT_SHAPE_SIZE], "softmax_L2")
-    layer3 = nn.layer_perceptron(layer2, [mf.PERCEPTRON_INPUT_SHAPE_SIZE], [mf.LABEL_NUMBER], "softmax_L3")
+    layer1 = nn.layer_perceptron(ph_set["x"], [FLAGS.image_size],
+                                 [FLAGS.perceptron_output_shape_size], "softmax_L1")
+    layer2 = nn.layer_perceptron(layer1, [FLAGS.perceptron_input_shape_size],
+                                 [FLAGS.perceptron_output_shape_size], "softmax_L2")
+    layer3 = nn.layer_perceptron(layer2, [FLAGS.perceptron_input_shape_size],
+                                 [FLAGS.label_number], "softmax_L3")
 
     # softmax layer
     with tf.name_scope("softmax_func"):
@@ -148,8 +153,8 @@ def train_and_model(model):
         saver = tf.train.Saver()
 
         # tensorboard
-        train_writer = tf.summary.FileWriter(mf.DIR_TENSORBOARD_TRAIN_SAVE, sess.graph)
-        test_writer = tf.summary.FileWriter(mf.DIR_TENSORBOARD_TRAIN_SAVE)
+        train_writer = tf.summary.FileWriter(FLAGS.dir_train_tensorboard, sess.graph)
+        test_writer = tf.summary.FileWriter(FLAGS.dir_test_tensorborad)
 
         # train step
         print("Train Start...")
@@ -160,7 +165,7 @@ def train_and_model(model):
         for step in range(FLAGS.max_train_step + 1):
             key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
-            data = train_batch.next_batch(mf.BATCH_SIZE, key_list)
+            data = train_batch.next_batch(FLAGS.batch_size, key_list)
 
             feed_dict = {model["X"]: data[Batch.INPUT_DATA],
                          model["Y"]: data[Batch.OUTPUT_DATA],
@@ -168,18 +173,18 @@ def train_and_model(model):
             sess.run(model["train_op"], feed_dict)
 
             # print log
-            if step % mf.PRINT_LOG_STEP_SIZE == 0:
+            if step % FLAGS.print_log_step_size== 0:
                 summary_train, _acc, _cost = sess.run([model["summary"], model["batch_acc"], model["cost"]],
                                                       feed_dict=feed_dict)
                 print(datetime.datetime.utcnow(), "train step: %d" % step
                       , "batch_acc:", _acc, "cost:", _cost)
 
             # checkpoint
-            if step % mf.CHECK_POINT_STEP_SIZE == 0:
-                saver.save(sess, mf.DIR_CHECKPOINT_TRAIN_SAVE, global_step=step)
+            if step % FLAGS.checkpoint_step_size == 0:
+                saver.save(sess, FLAGS.dir_train_checkpoint, global_step=step)
 
             # summary tensorboard
-            if step % mf.SUMMARY_STEP_SIZE:
+            if step % FLAGS.summary_step_size:
                 train_writer.add_summary(summary=summary_train, global_step=step)
 
         # test step
@@ -191,7 +196,7 @@ def train_and_model(model):
         for step in range(FLAGS.max_test_step + 1):
             key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
-            data = test_batch.next_batch(mf.BATCH_SIZE, key_list)
+            data = test_batch.next_batch(FLAGS.batch_size, key_list)
 
             feed_dict = {model["X"]: data[Batch.INPUT_DATA],
                          model["Y"]: data[Batch.OUTPUT_DATA],
@@ -205,18 +210,32 @@ def train_and_model(model):
                   , "batch_acc: ", _acc)
             total_acc += _acc
 
-            if step % mf.PRINT_LOG_STEP_SIZE == 0:
+            if step % FLAGS.print_log_step_size == 0:
                 summary_test, _acc = sess.run([model["summary"], model["batch_acc"]], feed_dict=feed_dict)
                 # print(datetime.datetime.utcnow(), "test step: %d" % step
                 #       , "batch_acc: ", _acc)
 
             test_writer.add_summary(summary=summary_test, global_step=step)
 
-        print("test complete: total acc =", total_acc / (mf.MAX_TEST_STEP + 1))
+        print("test complete: total acc =", total_acc / (FLAGS.max_test_step+ 1))
     return
 
 
 if __name__ == '__main__':
+
+    # dirs exist check & make dirs
+    if not os.path.exists(FLAGS.dir_train_checkpoint):
+        os.makedirs(FLAGS.dir_train_checkpoint)
+
+    if not os.path.exists(FLAGS.dir_test_checkpoint):
+        os.makedirs(FLAGS.dir_test_checkpoint)
+
+    if not os.path.exists(FLAGS.dir_train_tensorboard):
+        os.makedirs(FLAGS.dir_train_tensorboard)
+
+    if not os.path.exists(FLAGS.dir_test_tensorboard):
+        os.makedirs(FLAGS.dir_test_tensorborad)
+
     print("Neural Networks")
     train_and_model(model_NN())
     # print("NN softmax")

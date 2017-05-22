@@ -1,6 +1,8 @@
 import tensorflow as tf
 import tensor_summary as ts
-import ML_Flags
+
+flags = tf.app.flags
+FLAGS = flags.FLAGS
 
 
 def layer_perceptron(X, input_shape, layer_width, layer_name=None):
@@ -13,11 +15,11 @@ def layer_perceptron(X, input_shape, layer_width, layer_name=None):
     return tf.sigmoid(tf.matmul(X, W) + bias)
 
 
-def placeholders_init(mf):
+def placeholders_init():
 
     # placeHolder
-    x = tf.placeholder(tf.float32, [None, mf.IMAGE_SIZE], name="X")
-    y = tf.placeholder(tf.float32, [None, mf.LABEL_NUMBER], name="Y")
+    x = tf.placeholder(tf.float32, [None, FLAGS.image_size], name="X")
+    y = tf.placeholder(tf.float32, [None, FLAGS.label_number], name="Y")
     y_label = tf.placeholder(tf.float32, [None], name="Y_label")
 
     ph_set = {"X": x, "Y": y, "Y_label": y_label}
