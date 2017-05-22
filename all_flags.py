@@ -1,8 +1,8 @@
 # ML_CIFAR-10 flags
 import os
-from tensorflow import app
-
-flags = app.flags
+import tensorflow as tf
+flags = tf.app.flags
+Flags = flags.FLAGS
 
 # TODO refactoring use tf.app.flags(mean: definition all flags)
 # batch flags
@@ -22,8 +22,8 @@ flags.DEFINE_integer("perceptron_output_shape_size", 1000, "perceptron output sh
 
 # train & test flags
 flags.DEFINE_float("learning_rate", 0.01, "learning rate")
-flags.DEFINE_integer("max_train_step", 1000 * 1000 * 3, "max train step")
-flags.DEFINE_integer("max_test_step", 500, "max test step")
+flags.DEFINE_integer("max_train_step", 10, "max train step")
+flags.DEFINE_integer("max_test_step", 10, "max test step")
 
 # dir constant values
 TEST = "test"
