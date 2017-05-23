@@ -13,6 +13,7 @@ import neural_networks as nn
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+
 # TODO add argv for modeling function ex) layer width, layer number
 def model_NN():
 
@@ -167,12 +168,18 @@ def train_and_model(model):
             key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
             data = train_batch.next_batch(FLAGS.batch_size, key_list)
+            print("*********************")
+            print(data)
+            print("*********************")
 
             feed_dict = {model["X"]: data[Batch.INPUT_DATA],
                          model["Y"]: data[Batch.OUTPUT_DATA],
                          model["Y_label"]: data[Batch.OUTPUT_LABEL]}
-            sess.run(model["train_op"], feed_dict)
+            print(model["X"])
+            print(feed_dict[model["X"]])
+            print(feed_dict)
 
+            sess.run(model["train_op"], feed_dict)
             # print log
             if step % FLAGS.print_log_step_size == 0:
                 summary_train, _acc, _cost = sess.run([model["summary"], model["batch_acc"], model["cost"]],
@@ -198,10 +205,16 @@ def train_and_model(model):
             key_list = [Batch.INPUT_DATA, Batch.OUTPUT_LABEL, Batch.OUTPUT_DATA]
 
             data = test_batch.next_batch(FLAGS.batch_size, key_list)
-
+            print("*********************")
+            print(data)
+            print("*********************")
             feed_dict = {model["X"]: data[Batch.INPUT_DATA],
                          model["Y"]: data[Batch.OUTPUT_DATA],
                          model["Y_label"]: data[Batch.OUTPUT_LABEL]}
+            print(model["X"])
+            print(feed_dict[model["X"]])
+            print(feed_dict)
+
             # print("input:", data[Batch.INPUT_DATA])
             # print("output:", data[Batch.OUTPUT_DATA])
             # print("label:", data[Batch.OUTPUT_LABEL])
@@ -235,10 +248,10 @@ if __name__ == '__main__':
         os.makedirs(FLAGS.dir_train_tensorboard)
 
     if not os.path.exists(FLAGS.dir_test_tensorboard):
-        os.makedirs(FLAGS.dir_test_tensorborad)
+        os.makedirs(FLAGS.dir_test_tensorboard)
 
     print("Neural Networks")
     train_and_model(model_NN())
-    # print("NN softmax")
-    # train_and_model(model_NN_softmax())
+    print("NN softmax")
+    train_and_model(model_NN_softmax())
     pass
