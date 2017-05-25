@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+# TODO Tensorboard summary template #5
 def variable_summaries(var):
     """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
     with tf.name_scope('summaries'):

@@ -5,7 +5,7 @@ import os
 import Batch
 import all_flags
 import tensor_summary as ts
-import neural_networks as nn
+import neuron_modeling as nm
 
 # TODO file must split
 # TODO write more comment please
@@ -18,14 +18,14 @@ FLAGS = flags.FLAGS
 def model_NN():
 
     # placeholder x, y, y_label
-    ph_set = nn.placeholders_init()
+    ph_set = nm.placeholders_init()
 
     # NN layer
-    layer1 = nn.layer_perceptron(ph_set["X"], [FLAGS.image_size],
+    layer1 = nm.layer_perceptron(ph_set["X"], [FLAGS.image_size],
                                  [FLAGS.perceptron_input_shape_size], "layer_1")
-    layer2 = nn.layer_perceptron(layer1, [FLAGS.perceptron_input_shape_size],
+    layer2 = nm.layer_perceptron(layer1, [FLAGS.perceptron_input_shape_size],
                                  [FLAGS.perceptron_output_shape_size], "layer_2")
-    h = nn.layer_perceptron(layer2, [FLAGS.perceptron_input_shape_size],
+    h = nm.layer_perceptron(layer2, [FLAGS.perceptron_input_shape_size],
                             [FLAGS.label_number], "layer_3")
 
     # cost function
@@ -83,14 +83,14 @@ def model_NN():
 def model_NN_softmax():
 
     # placeHolder
-    ph_set = nn.placeholders_init()
+    ph_set = nm.placeholders_init()
 
     # NN layer
-    layer1 = nn.layer_perceptron(ph_set["X"], [FLAGS.image_size],
+    layer1 = nm.layer_perceptron(ph_set["X"], [FLAGS.image_size],
                                  [FLAGS.perceptron_output_shape_size], "softmax_L1")
-    layer2 = nn.layer_perceptron(layer1, [FLAGS.perceptron_input_shape_size],
+    layer2 = nm.layer_perceptron(layer1, [FLAGS.perceptron_input_shape_size],
                                  [FLAGS.perceptron_output_shape_size], "softmax_L2")
-    layer3 = nn.layer_perceptron(layer2, [FLAGS.perceptron_input_shape_size],
+    layer3 = nm.layer_perceptron(layer2, [FLAGS.perceptron_input_shape_size],
                                  [FLAGS.label_number], "softmax_L3")
 
     # softmax layer
@@ -143,6 +143,38 @@ def model_NN_softmax():
                   "summary": summary,
                   }
     return tensor_set
+
+
+# TODO add argv for modeling function ex) layer width, layer number
+# TODO write&test CNN code #9
+def model_CNN():
+    ph_set = nm.placeholders_init()
+
+    layers = []
+    # input/hidden layer(convolution layer)
+    # [conv->relu->pooling] --> conv->relu --> affine->relu --> affine->softmax
+    for i in range(FLAGS.convolution_layer_size):
+        _layer = nm.layer_convolution(ph_set["X"], [FLAGS.image_size],
+                                      [FLAGS.convolution_shape_output_size], "_layer_%d" % (i))
+        layers.append(_layer)
+
+    # convolution & relu
+    # conv->relu->pooling --> [conv->relu] --> affine->relu --> affine->softmax
+
+    # neuron layer
+    # conv->relu->pooling --> conv->relu --> [affine->relu] --> affine->softmax
+
+    # softmax layer
+    # conv->relu->pooling --> conv->relu --> affine->relu --> [affine->softmax]
+
+    # merge summary
+    summary = tf.summary.merge_all()
+
+    # init op
+    init_op = tf.global_variables_initializer()
+
+    tensor_set = {}
+    return
 
 
 # TODO split function train_model and test_model
