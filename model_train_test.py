@@ -153,9 +153,10 @@ def model_CNN():
     layers = []
     # input/hidden layer(convolution layer)
     # [conv->relu->pooling] --> conv->relu --> affine->relu --> affine->softmax
-    for i in range(FLAGS.convolution_layer_size):
+    for level in range(FLAGS.convolution_layer_size):
         _layer = nm.layer_convolution(ph_set["X"], [FLAGS.image_size],
-                                      [FLAGS.convolution_shape_output_size], "_layer_%d" % (i))
+                                      [FLAGS.convolution_shape_output_size],
+                                      "_layer_%d" % level)
         layers.append(_layer)
 
     # convolution & relu
